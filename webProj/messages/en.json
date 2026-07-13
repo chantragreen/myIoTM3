@@ -1,0 +1,54 @@
+{
+  "common": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "stages": "Tournament",
+      "prizes": "Prizes",
+      "contact": "Contact",
+      "register": "Register Now"
+    },
+    "language": "Language"
+  },
+  "hero": {
+    "title": "Thailand-Japan Game Programming Hackathon 2026",
+    "subtitle": "Unite Thai and Japanese developers. Create. Compete. Connect.",
+    "cta": "Register Now",
+    "countdown_title": "Event Countdown"
+  },
+  "about": {
+    "title": "About the Event",
+    "description": "A groundbreaking collaboration uniting young developers from Thailand and Japan. This hackathon is designed to foster innovation, cultural exchange, and excellence in game programming.",
+    "mission": "Our Mission",
+    "mission_text": "To create a vibrant community where talented young developers can showcase their skills, collaborate across borders, and push the boundaries of game development."
+  },
+  "stages": {
+    "title": "Tournament Structure",
+    "subtitle": "Two Stages of Competition",
+    "stage1": {
+      "title": "Stage 1: Thailand Domestic Qualifier",
+      "description": "Online and on-site competition across Thailand. Top teams advance to the Grand Final.",
+      "location": "Thailand (Hybrid: Online & On-site)"
+    },
+    "stage2": {
+      "title": "Stage 2: Grand Final",
+      "description": "Thailand VS Japan - The ultimate showdown featuring the best teams from both nations.",
+      "location": "Virtual / Main Venue"
+    }
+  },
+  "prizes": {
+    "title": "Prizes & Mentors",
+    "subtitle": "Amazing Rewards Await Winners",
+    "first_place": "First Place",
+    "second_place": "Second Place",
+    "third_place": "Third Place",
+    "mentors_title": "Industry Mentors",
+    "mentors_text": "Learn from world-class developers and game industry professionals"
+  },
+  "footer": {
+    "sponsors": "Sponsors",
+    "contact": "Contact",
+    "email": "contact@hackathon2026.com",
+    "rights": "All rights reserved"
+  }
+}
