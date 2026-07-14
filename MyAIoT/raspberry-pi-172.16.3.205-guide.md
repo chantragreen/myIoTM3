@@ -73,7 +73,11 @@ git pull
 
 เหมาะเมื่อจะย้ายโค้ดจากเครื่อง local โดยตรง
 
-ตัวอย่าง `rsync`:
+สำคัญ: คำสั่ง `rsync` ต้องรันจากเครื่องที่มี source code อยู่จริง
+
+### กรณีรันจาก Windows ต้นทาง
+
+ตัวอย่าง `rsync` จาก Git Bash หรือ WSL:
 
 ```bash
 rsync -avz --delete \
@@ -84,13 +88,80 @@ rsync -avz --delete \
   pi@172.16.3.205:/home/pi/apps/MyAIoT/
 ```
 
+ถ้าเจอ error ว่า `rsync: command not found` บน Git Bash แปลว่าเครื่อง Windows นี้ยังไม่มี rsync ให้ใช้หนึ่งในทางเลือกต่อไปนี้แทน
+
+#### ทางเลือก 1: ใช้ tar ผ่าน SSH โดยไม่ต้องติดตั้ง rsync เพิ่ม
+
+```bash
+ssh pi@172.16.3.205 "mkdir -p /home/pi/apps"
+
+tar \
+  --exclude=node_modules \
+  --exclude=.next \
+  --exclude=.git \
+  -czf - \
+  -C /d/MyIoT/AIoT/myIoTM3 \
+  MyAIoT | ssh pi@172.16.3.205 "tar -xzf - -C /home/pi/apps"
+```
+
+คำสั่งนี้จะส่งทั้งโฟลเดอร์ `MyAIoT` ไปที่ `/home/pi/apps/MyAIoT` โดยไม่รวม `node_modules`, `.next` และ `.git`
+
+#### ทางเลือก 2: ใช้ scp แบบง่าย
+
+```bash
+ssh pi@172.16.3.205 "mkdir -p /home/pi/apps"
+scp -r /d/MyIoT/AIoT/myIoTM3/MyAIoT pi@172.16.3.205:/home/pi/apps/
+```
+
+วิธีนี้ง่ายกว่า แต่จะ copy ไฟล์ที่ไม่จำเป็นไปด้วย เช่น `.next` หรือ `node_modules` ถ้ามีอยู่ในเครื่องต้นทาง
+
+#### ทางเลือก 3: ติดตั้ง rsync บน Windows ก่อน
+
+ถ้าต้องการใช้ rsync จริงบน Windows ให้รันจาก WSL หรือใช้ environment ที่มี rsync เช่น MSYS2
+
+### กรณีรันจาก Linux หรือ Raspberry Pi ต้นทาง
+
+ถ้าตอนนี้ source code อยู่บนเครื่อง Linux หรือ Raspberry Pi เช่นในโฟลเดอร์ `~/DEV/Training/MyAIoT` ให้ใช้ path ของ Linux แทน ไม่ใช่ `/d/...`
+
+ก่อนส่งไฟล์ ให้สร้างโฟลเดอร์ปลายทางก่อน:
+
+```bash
+ssh pi@172.16.3.205 "mkdir -p /home/pi/apps/MyAIoT"
+```
+
+จากนั้นค่อย rsync:
+
+```bash
+rsync -avz --delete \
+  --exclude node_modules \
+  --exclude .next \
+  --exclude .git \
+  ~/DEV/Training/MyAIoT/ \
+  pi@172.16.3.205:/home/pi/apps/MyAIoT/
+```
+
+ถ้าคุณยืนอยู่ใน parent directory ของโปรเจกต์อยู่แล้ว ก็ใช้แบบนี้ได้:
+
+```bash
+rsync -avz --delete \
+  --exclude node_modules \
+  --exclude .next \
+  --exclude .git \
+  ./MyAIoT/ \
+  pi@172.16.3.205:/home/pi/apps/MyAIoT/
+```
+
 ถ้าใช้ `scp` แบบง่าย:
 
 ```bash
 scp -r MyAIoT pi@172.16.3.205:/home/pi/apps/
 ```
 
-หมายเหตุ: ถ้าใช้ Windows PowerShell แล้ว path แบบ `/d/...` ใช้ไม่ได้ ให้รันจาก Git Bash หรือ WSL จะสะดวกกว่า
+หมายเหตุ:
+- ถ้าใช้ Windows PowerShell แล้ว path แบบ `/d/...` ใช้ไม่ได้ ให้รันจาก Git Bash หรือ WSL
+- ถ้ารันจาก Linux หรือ Raspberry Pi ห้ามใช้ path แบบ `/d/...` เพราะเป็น path ของ Windows
+- ถ้าปลายทางยังไม่มี `/home/pi/apps` คำสั่ง rsync จะสร้างโฟลเดอร์ย่อยไม่สำเร็จ
+- ถ้าใช้ Git Bash บน Windows แล้ว `rsync` ไม่มีในระบบ ให้ใช้ `tar | ssh` หรือ `scp` แทน
 
 ## 4. ย้ายไฟล์ environment
 
@@ -284,11 +355,12 @@ pm2 restart aiot-activity-hub
 ถ้าใช้ rsync:
 
 ```bash
+ssh pi@172.16.3.205 "mkdir -p /home/pi/apps/MyAIoT"
 rsync -avz --delete \
   --exclude node_modules \
   --exclude .next \
   --exclude .git \
-  /d/MyIoT/AIoT/myIoTM3/MyAIoT/ \
+  ~/DEV/Training/MyAIoT/ \
   pi@172.16.3.205:/home/pi/apps/MyAIoT/
 ```
 
