@@ -31,35 +31,44 @@ export default function Prizes() {
     },
   };
 
+  const colorClasses: Record<string, { text: string; border: string; shadow: string }> = {
+    cyan: {
+      text: 'text-neon-cyan',
+      border: 'border-neon-cyan',
+      shadow: 'shadow-neon-cyan',
+    },
+    magenta: {
+      text: 'text-neon-magenta',
+      border: 'border-neon-magenta',
+      shadow: 'shadow-neon-magenta',
+    },
+    purple: {
+      text: 'text-neon-purple',
+      border: 'border-neon-purple',
+      shadow: 'shadow-neon-magenta',
+    },
+  };
+
   const prizes = [
     {
       rank: t('first_place'),
       amount: '$10,000',
       icon: Trophy,
-      color: 'from-neon-cyan to-neon-cyan',
-      textColor: 'text-neon-cyan',
-      borderColor: 'border-neon-cyan',
-      shadowColor: 'shadow-neon-cyan',
+      colorKey: 'cyan' as const,
       position: 'top-0',
     },
     {
       rank: t('second_place'),
       amount: '$5,000',
       icon: Medal,
-      color: 'from-neon-magenta to-neon-magenta',
-      textColor: 'text-neon-magenta',
-      borderColor: 'border-neon-magenta',
-      shadowColor: 'shadow-neon-magenta',
+      colorKey: 'magenta' as const,
       position: 'top-20',
     },
     {
       rank: t('third_place'),
       amount: '$2,500',
       icon: Award,
-      color: 'from-neon-purple to-neon-purple',
-      textColor: 'text-neon-purple',
-      borderColor: 'border-neon-purple',
-      shadowColor: 'shadow-neon-magenta',
+      colorKey: 'purple' as const,
       position: 'top-40',
     },
   ];
@@ -100,7 +109,6 @@ export default function Prizes() {
           </motion.p>
         </motion.div>
 
-        {/* Prizes Grid */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -109,6 +117,7 @@ export default function Prizes() {
         >
           {prizes.map((prize, idx) => {
             const Icon = prize.icon;
+            const colors = colorClasses[prize.colorKey];
             return (
               <motion.div
                 key={idx}
@@ -116,16 +125,18 @@ export default function Prizes() {
                 whileHover={{ y: -10 }}
                 className={`relative ${idx === 0 ? 'md:scale-110 md:z-10' : ''}`}
               >
-                <div className={`p-8 bg-gradient-to-br from-cyber-indigo/40 to-tech-gray/40 border-2 ${prize.borderColor} rounded-lg backdrop-blur transition-all duration-300 hover:${prize.shadowColor}`}>
+                <div
+                  className={`p-8 bg-gradient-to-br from-cyber-indigo/40 to-tech-gray/40 border-2 ${colors.border} rounded-lg backdrop-blur transition-all duration-300 hover:${colors.shadow}`}
+                >
                   <div className="text-center">
                     <motion.div
                       className="flex justify-center mb-4"
                       animate={{ rotate: [0, 5, -5, 0] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     >
-                      <Icon className={`w-16 h-16 ${prize.textColor}`} />
+                      <Icon className={`w-16 h-16 ${colors.text}`} />
                     </motion.div>
-                    <h3 className={`text-2xl font-bold ${prize.textColor} mb-2`}>
+                    <h3 className={`text-2xl font-bold ${colors.text} mb-2`}>
                       {prize.rank}
                     </h3>
                     <p className="text-3xl font-bold neon-text mb-2">{prize.amount}</p>
