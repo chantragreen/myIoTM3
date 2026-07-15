@@ -25,3 +25,16 @@
 
 7. การสำรองข้อมูล
 - สำรองโค้ดและไฟล์คอนฟิก เช่น .env ใน private repository
+
+## Deployment / Rollback มาตรฐานทีม
+
+- Deploy มาตรฐาน (one-command):
+	- `./deploy.sh`
+- Deploy แบบข้าม lint (กรณีฉุกเฉิน):
+	- `SKIP_LINT=1 ./deploy.sh`
+- Rollback กลับเวอร์ชันก่อนหน้าโดยระบุ Git ref:
+	- `./deploy/rollback.sh HEAD~1`
+	- `./deploy/rollback.sh v1.2.3`
+- หมายเหตุ:
+	- rollback script จะ checkout ไปยังเป้าหมายใน detached HEAD แล้ว build/reload ผ่าน PM2
+	- หากมีไฟล์ค้างแก้ไขอยู่ ให้ commit/stash ก่อน หรือใช้ `FORCE=1` เมื่อเข้าใจผลกระทบ
