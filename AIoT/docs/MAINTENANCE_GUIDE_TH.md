@@ -38,3 +38,8 @@
 - หมายเหตุ:
 	- rollback script จะ checkout ไปยังเป้าหมายใน detached HEAD แล้ว build/reload ผ่าน PM2
 	- หากมีไฟล์ค้างแก้ไขอยู่ ให้ commit/stash ก่อน หรือใช้ `FORCE=1` เมื่อเข้าใจผลกระทบ
+
+## Troubleshooting เพิ่มเติม
+
+- ปัญหา commit ไม่ได้เพราะไม่ได้ตั้งค่า Git identity:
+	- `docs/TROUBLESHOOT_GIT_COMMIT_IDENTITY_TH.md`

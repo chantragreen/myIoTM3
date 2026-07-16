@@ -2,12 +2,17 @@ import json
 import gc
 import machine
 import time
+try:
+    import uos as os
+except ImportError:
+    import os
 
 from actuator import MultiRelayController
+from button_input import ButtonInput
 from mqtt_service import MQTTService
 from offline_queue import OfflinePublishQueue
 from sensors import SensorReader
-from topic_builder import build_topics, relay_state_topic
+from topic_builder import build_topics, button_state_topic, relay_state_topic
 from wifi_manager import WiFiManager
 
 try:
@@ -28,6 +33,39 @@ def cfg(name, default_value):
     return getattr(config, name, default_value)
 
 
+def load_wifi_credentials():
+    ssid = config.WIFI_SSID
+    password = config.WIFI_PASSWORD
+
+    if not cfg("WIFI_USE_CREDENTIAL_FILE", False):
+        return ssid, password
+
+    path = cfg("WIFI_CREDENTIALS_PATH", "wifi_credentials.json")
+    try:
+        with open(path, "r") as fp:
+            data = json.loads(fp.read())
+            file_ssid = str(data.get("ssid", "")).strip()
+            file_password = str(data.get("password", ""))
+            if file_ssid:
+                return file_ssid, file_password
+    except Exception:
+        pass
+
+    return ssid, password
+
+
+def clear_wifi_credentials_file():
+    if not cfg("WIFI_USE_CREDENTIAL_FILE", False):
+        return False
+
+    path = cfg("WIFI_CREDENTIALS_PATH", "wifi_credentials.json")
+    try:
+        os.remove(path)
+        return True
+    except Exception:
+        return False
+
+
 if cfg("CPU_FREQ_HZ", None):
     try:
         machine.freq(cfg("CPU_FREQ_HZ", None))
@@ -35,9 +73,11 @@ if cfg("CPU_FREQ_HZ", None):
         pass
 
 
+wifi_ssid, wifi_password = load_wifi_credentials()
+
 wifi = WiFiManager(
-    config.WIFI_SSID,
-    config.WIFI_PASSWORD,
+    wifi_ssid,
+    wifi_password,
     wifi_pm=cfg("WIFI_PM", None),
 )
 
@@ -54,6 +94,24 @@ RELAY_IDS = relays.relay_ids()
 DEFAULT_RELAY_ID = RELAY_IDS[0] if RELAY_IDS else "1"
 CONNECTED_IP = ""
 CONNECTED_MAC = ""
+PAIRING_MODE_UNTIL_MS = 0
+
+button = None
+if cfg("BUTTON_ENABLED", False):
+    try:
+        hold_marks = [
+            cfg("BUTTON_LONG_PRESS_STAGE1_MS", 3000),
+            cfg("BUTTON_LONG_PRESS_STAGE2_MS", 8000),
+        ]
+        button = ButtonInput(
+            pin_no=cfg("BUTTON_PIN", 16),
+            pull_up=cfg("BUTTON_PULL_UP", True),
+            active_low=cfg("BUTTON_ACTIVE_LOW", True),
+            debounce_ms=cfg("BUTTON_DEBOUNCE_MS", 80),
+            hold_marks_ms=hold_marks,
+        )
+    except Exception:
+        button = None
 
 wdt = None
 if cfg("WATCHDOG_ENABLED", True):
@@ -155,12 +213,14 @@ def publish_or_queue(topic, message, retain=False):
 
 
 def publish_status(online):
+    pairing_active = time.ticks_diff(PAIRING_MODE_UNTIL_MS, now_ms()) > 0
     status_payload = {
         "device_id": config.DEVICE_ID,
         "team_id": config.TEAM_ID,
         "online": online,
         "relays": relays.state_map(),
         "queue_size": queue.size(),
+        "pairing_mode": pairing_active,
     }
     publish_or_queue(topics["status"], json.dumps(status_payload), retain=True)
 
@@ -168,6 +228,100 @@ def publish_status(online):
 def publish_relay_states():
     for relay_id in RELAY_IDS:
         publish_or_queue(relay_state_topic(topics["base"], relay_id), relays.state_text(relay_id), retain=True)
+
+
+def publish_button_state(is_pressed):
+    topic = button_state_topic(topics["base"], cfg("BUTTON_ID", "1"))
+    state = "PRESSED" if is_pressed else "RELEASED"
+    publish_or_queue(topic, state, retain=False)
+
+
+def publish_event(event_name, data=None):
+    payload = {
+        "event": event_name,
+        "device_id": config.DEVICE_ID,
+        "team_id": config.TEAM_ID,
+        "ts_ms": now_ms(),
+    }
+    if isinstance(data, dict):
+        payload.update(data)
+    publish_or_queue(topics["event"], json.dumps(payload), retain=False)
+
+
+def is_pairing_mode_active():
+    return time.ticks_diff(PAIRING_MODE_UNTIL_MS, now_ms()) > 0
+
+
+def activate_pairing_mode():
+    global PAIRING_MODE_UNTIL_MS
+    duration_sec = max(10, int(cfg("PAIRING_MODE_DURATION_SEC", 120)))
+    PAIRING_MODE_UNTIL_MS = time.ticks_add(now_ms(), duration_sec * 1000)
+    publish_event("pairing_mode_enter", {"duration_sec": duration_sec})
+    publish_status(True)
+
+
+def handle_long_press_action(action):
+    action = str(action).strip().lower()
+
+    if action == "reset_wifi_config":
+        removed = clear_wifi_credentials_file()
+        publish_event("wifi_config_reset", {"removed": removed})
+
+        if removed and cfg("LONG_PRESS_RESET_REBOOT", True):
+            publish_status(False)
+            mqtt.disconnect()
+            machine.reset()
+            return
+
+        # Fall back to pairing mode when no external credential file is configured.
+        activate_pairing_mode()
+        return
+
+    activate_pairing_mode()
+
+
+def handle_button_if_any():
+    if button is None:
+        return
+
+    event = button.poll_event()
+    if event is None:
+        return
+
+    event_type = event.get("type")
+
+    if event_type == "pressed":
+        publish_button_state(True)
+        if cfg("BUTTON_PRESS_TOGGLE_RELAY", True) and not is_pairing_mode_active() and relays.has_relay(DEFAULT_RELAY_ID):
+            relays.toggle(DEFAULT_RELAY_ID)
+            publish_or_queue(
+                relay_state_topic(topics["base"], DEFAULT_RELAY_ID),
+                relays.state_text(DEFAULT_RELAY_ID),
+                retain=True,
+            )
+        return
+
+    if event_type == "released":
+        publish_button_state(False)
+        return
+
+    if event_type == "long_pressed":
+        mark_ms = int(event.get("mark_ms", 0))
+        action = cfg("BUTTON_LONG_PRESS_STAGE1_ACTION", "pairing_mode")
+        if mark_ms >= int(cfg("BUTTON_LONG_PRESS_STAGE2_MS", 8000)):
+            action = cfg("BUTTON_LONG_PRESS_STAGE2_ACTION", "reset_wifi_config")
+
+        publish_event(
+            "button_long_press",
+            {
+                "action": action,
+                "mark_ms": mark_ms,
+                "duration_ms": int(event.get("duration_ms", mark_ms)),
+            },
+        )
+
+        if cfg("BUTTON_LONG_PRESS_ENABLED", True):
+            handle_long_press_action(action)
 
 
 def publish_telemetry():
@@ -237,6 +391,7 @@ def run():
     print("Starting Pico W Edge Station")
     print("Device:", config.DEVICE_ID)
     print("Team:", config.TEAM_ID)
+    print("Wi-Fi SSID:", wifi_ssid)
 
     ip, mac = ensure_connected()
     print("Wi-Fi connected. IP:", ip)
@@ -254,6 +409,7 @@ def run():
                 ensure_connected()
 
             mqtt.check_messages()
+            handle_button_if_any()
 
             if ticks_elapsed_ms(last_publish_ms) >= config.PUBLISH_INTERVAL_SEC * 1000:
                 publish_telemetry()

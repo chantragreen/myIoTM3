@@ -1,4 +1,9 @@
-from umqtt.simple import MQTTClient
+try:
+    from umqtt.simple import MQTTClient
+except ImportError as ex:
+    raise ImportError(
+        "Missing MicroPython dependency 'umqtt.simple'. On Pico W in Thonny, run install_deps.py once or install 'umqtt.simple' from Tools > Manage packages."
+    ) from ex
 
 
 class MQTTService:

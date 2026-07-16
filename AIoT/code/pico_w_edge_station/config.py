@@ -1,4 +1,7 @@
-# Copy this file to config.py and adjust values for your team/device.
+# First edge station profile (Pico W #1)
+# Hardware:
+# - LED/Relay channel 1 on GPIO15
+# - Pushbutton on GPIO16 (to GND, internal pull-up)
 
 WIFI_SSID = "YOUR_WIFI_SSID"
 WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
@@ -9,42 +12,32 @@ MQTT_USERNAME = ""
 MQTT_PASSWORD = ""
 MQTT_KEEPALIVE = 60
 
-# Optional Wi-Fi power management value for Pico W.
-# None = keep MicroPython default, 0 = no power save.
 WIFI_PM = None
 
 # Optional runtime Wi-Fi credentials file (JSON)
-# Example file content: {"ssid":"MyWiFi","password":"secret"}
 WIFI_USE_CREDENTIAL_FILE = False
 WIFI_CREDENTIALS_PATH = "wifi_credentials.json"
 
-TEAM_ID = "TEAM-DEMO"
-DEVICE_ID = "pico-w-edge-01"
+TEAM_ID = "TEAM-CHANTRAGREEN"
+DEVICE_ID = "pico-w-01-led-btn"
 
 PUBLISH_INTERVAL_SEC = 5
 HEARTBEAT_INTERVAL_SEC = 30
 
-# Sensor mode:
-# - "dht22": use DHT22 on DHT22_PIN
-# - "simulated": no humidity sensor, generated value
+# Keep humidity simulated for this profile (no DHT22 on GPIO16).
 HUMIDITY_SOURCE = "simulated"
 DHT22_PIN = 17
 
-# Relay configuration for multiple channels.
-# id is used in topic: .../relay/<id>/cmd
 RELAYS = [
-	{"id": "1", "pin": 15, "active_high": True},
+    {"id": "1", "pin": 15, "active_high": True},
 ]
 
-# Pushbutton configuration (example: button on GPIO16)
 BUTTON_ENABLED = True
 BUTTON_ID = "1"
 BUTTON_PIN = 16
 BUTTON_PULL_UP = True
 BUTTON_ACTIVE_LOW = True
 BUTTON_DEBOUNCE_MS = 80
-
-# If True: every button press toggles relay #1 (useful for LED test)
 BUTTON_PRESS_TOGGLE_RELAY = True
 
 # Long-press behavior
@@ -53,19 +46,16 @@ BUTTON_LONG_PRESS_STAGE1_MS = 3000
 BUTTON_LONG_PRESS_STAGE1_ACTION = "pairing_mode"
 BUTTON_LONG_PRESS_STAGE2_MS = 8000
 BUTTON_LONG_PRESS_STAGE2_ACTION = "reset_wifi_config"
-PAIRING_MODE_DURATION_SEC = 120
+PAIRING_MODE_DURATION_SEC = 180
 LONG_PRESS_RESET_REBOOT = True
 
-# Reliability settings
 OFFLINE_QUEUE_MAX = 80
 RECONNECT_BASE_SEC = 2
 RECONNECT_MAX_SEC = 30
 
-# Watchdog settings
 WATCHDOG_ENABLED = True
 WATCHDOG_TIMEOUT_MS = 8000
 
-# Power tuning
 LOOP_SLEEP_MS = 250
 USE_LIGHT_SLEEP = True
 CPU_FREQ_HZ = 125000000
