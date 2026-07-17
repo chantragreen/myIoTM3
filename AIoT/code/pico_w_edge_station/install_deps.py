@@ -16,10 +16,41 @@ def install(package_name):
     mip.install(package_name)
 
 
+def verify_umqtt():
+    try:
+        import umqtt.simple  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
 def main():
-    install("umqtt.simple")
-    print("Dependency installation completed.")
-    print("Next step: reset Pico W and run main.py")
+    candidates = [
+        "umqtt.simple",
+        "micropython-umqtt.simple",
+    ]
+
+    installed = False
+    for package_name in candidates:
+        try:
+            install(package_name)
+            if verify_umqtt():
+                installed = True
+                break
+        except Exception as ex:
+            print("Install failed for {} -> {}".format(package_name, ex))
+
+    if not installed and verify_umqtt():
+        installed = True
+
+    if installed:
+        print("Dependency installation completed.")
+        print("Next step: reset Pico W and run preflight_check.py")
+        return
+
+    print("Dependency installation failed.")
+    print("Try Thonny > Tools > Manage packages... and install 'umqtt.simple' manually.")
+    print("If still failing, update MicroPython firmware and try again.")
 
 
 if __name__ == "__main__":

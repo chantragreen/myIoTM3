@@ -11,7 +11,7 @@ from actuator import MultiRelayController
 from button_input import ButtonInput
 from mqtt_service import MQTTService
 from offline_queue import OfflinePublishQueue
-from sensors import SensorReader
+from edge_sensors import SensorReader
 from topic_builder import build_topics, button_state_topic, relay_state_topic
 from wifi_manager import WiFiManager
 

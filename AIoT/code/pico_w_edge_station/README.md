@@ -9,7 +9,7 @@ This folder contains MicroPython code for Raspberry Pi Pico W to run as an AIoT 
 - `config.example.py`: configuration template
 - `wifi_manager.py`: Wi-Fi connection helper
 - `mqtt_service.py`: MQTT client wrapper
-- `sensors.py`: sensor reading (internal temp + light ADC + DHT22 humidity)
+- `edge_sensors.py`: sensor reading (internal temp + light ADC + DHT22 humidity)
 - `actuator.py`: multi-relay GPIO output control
 - `topic_builder.py`: MQTT topic generation
 - `button_input.py`: debounced pushbutton input handling
@@ -35,7 +35,28 @@ Recommended fix in Thonny:
 2. Open `install_deps.py` in Thonny
 3. Run it once on the Pico W
 4. Wait until you see `Dependency installation completed.`
-5. Reset the board and run `main.py`
+5. Verify in Thonny Shell:
+
+```python
+import umqtt.simple
+print("umqtt ok")
+```
+
+6. Reset the board and run `preflight_check.py` then `main.py`
+
+Direct shell install fallback:
+
+```python
+import mip
+mip.install("umqtt.simple")
+```
+
+If that name is not found:
+
+```python
+import mip
+mip.install("micropython-umqtt.simple")
+```
 
 Alternative fix:
 

@@ -27,8 +27,8 @@
    - `wifi_manager.py`
    - `topic_builder.py`
    - `actuator.py`
+   - `edge_sensors.py`
    - `button_input.py`
-   - `sensors.py`
    - `offline_queue.py`
    - `boot.py`
 5. ยืนยันว่าทุกไฟล์เห็นอยู่ฝั่ง `Raspberry Pi Pico`
@@ -41,6 +41,26 @@
    - `Dependency installation completed.`
 4. ถ้าขึ้นว่า `no module named mip`:
    - อัปเดตเฟิร์มแวร์ MicroPython ของ Pico W แล้วลองใหม่
+5. ตรวจยืนยันใน Shell ของ Thonny:
+
+```python
+import umqtt.simple
+print("umqtt ok")
+```
+
+ถ้ายัง import ไม่ได้ ให้ลองติดตั้งใน Shell โดยตรง:
+
+```python
+import mip
+mip.install("umqtt.simple")
+```
+
+หรือ:
+
+```python
+import mip
+mip.install("micropython-umqtt.simple")
+```
 
 ## D) ทดสอบความพร้อมก่อนรันจริง
 
@@ -65,6 +85,7 @@
 
 1. `ImportError: no module named 'umqtt'`
    - รัน `install_deps.py` ซ้ำอีกครั้ง
+   - ทดสอบ `import umqtt.simple` ใน Shell ก่อนรัน `preflight_check.py`
 2. Wi-Fi ไม่เชื่อมต่อ
    - ตรวจ `WIFI_SSID` และ `WIFI_PASSWORD` ใน `config.py`
 3. MQTT ต่อไม่ได้
