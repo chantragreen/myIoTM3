@@ -49,6 +49,7 @@ interface DeviceRealtimeState {
   temperature?: number;
   humidity?: number;
   light?: number;
+  buttonState?: string;
   lastHeartbeatAt?: number;
   online?: boolean;
 }
@@ -129,7 +130,7 @@ export function useRealtimeTelemetry(teamId: string, selectedDeviceId?: string) 
 
     bootstrapDevices();
 
-    const topic = `team/${teamId}/+/+`;
+    const topic = `team/${teamId}/#`;
     const source = new EventSource(`/api/mqtt/stream?topic=${encodeURIComponent(topic)}`);
 
     source.onmessage = (event) => {
@@ -156,6 +157,13 @@ export function useRealtimeTelemetry(teamId: string, selectedDeviceId?: string) 
       setDevices((prev) => {
         const current = prev[deviceKey] ?? {};
         const next: DeviceRealtimeState = { ...current };
+
+        if (parsedTopic.metric === "button" && payload.topic.endsWith("/state")) {
+          const buttonState = payload.message.trim().toUpperCase();
+          if (buttonState === "PRESSED" || buttonState === "RELEASED") {
+            next.buttonState = buttonState;
+          }
+        }
 
         if (parsedTopic.metric === "heartbeat") {
           next.lastHeartbeatAt = nowMs;
@@ -260,12 +268,38 @@ export function useRealtimeTelemetry(teamId: string, selectedDeviceId?: string) 
     () => Object.values(devices).filter((device) => Boolean(device.online)).length,
     [devices]
   );
+  const selectedDeviceButtonState = useMemo(() => {
+    if (!resolvedDeviceId) {
+      return "UNKNOWN";
+    }
+
+    return devices[resolvedDeviceId]?.buttonState ?? "UNKNOWN";
+  }, [devices, resolvedDeviceId]);
+  const buttonStateByDevice = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const deviceId of deviceIds) {
+      map[deviceId] = devices[deviceId]?.buttonState ?? "UNKNOWN";
+    }
+
+    return map;
+  }, [deviceIds, devices]);
+  const onlineByDevice = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const deviceId of deviceIds) {
+      map[deviceId] = Boolean(devices[deviceId]?.online);
+    }
+
+    return map;
+  }, [deviceIds, devices]);
 
   return {
     deviceIds,
     selectedDeviceId: resolvedDeviceId,
     series,
     latest,
-    activeDevices
+    activeDevices,
+    selectedDeviceButtonState,
+    buttonStateByDevice,
+    onlineByDevice
   };
 }

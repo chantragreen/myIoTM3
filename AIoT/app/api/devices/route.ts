@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDevice, listDevices } from "@/lib/server/device-registry";
 import { CreateDeviceInput } from "@/types/device";
+import { isTeamAllowed } from "@/lib/server/team-policy";
 
 export async function GET(request: NextRequest) {
   const teamId = request.nextUrl.searchParams.get("teamId")?.trim();
   if (!teamId) {
     return NextResponse.json({ error: "teamId is required" }, { status: 400 });
+  }
+  if (!isTeamAllowed(teamId)) {
+    return NextResponse.json({ error: "teamId is not allowed" }, { status: 403 });
   }
 
   const devices = listDevices(teamId);
@@ -17,6 +21,9 @@ export async function POST(request: NextRequest) {
   const teamId = request.headers.get("x-team-id")?.trim();
   if (!teamId) {
     return NextResponse.json({ error: "x-team-id header is required" }, { status: 400 });
+  }
+  if (!isTeamAllowed(teamId)) {
+    return NextResponse.json({ error: "teamId is not allowed" }, { status: 403 });
   }
 
   const body = (await request.json()) as Partial<CreateDeviceInput>;

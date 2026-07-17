@@ -7,7 +7,8 @@ import clsx from "clsx";
 const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/devices", label: "Devices" },
-  { href: "/automation", label: "Automation (AI Rules)" }
+  { href: "/automation", label: "Automation (AI Rules)" },
+  { href: "/settings", label: "Settings" }
 ];
 
 export function Sidebar() {

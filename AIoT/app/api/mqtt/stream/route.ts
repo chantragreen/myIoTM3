@@ -2,9 +2,33 @@ import { mqttService } from "@/lib/server/mqtt-client";
 
 export const runtime = "nodejs";
 
+const mqttTopicMatches = (pattern: string, topic: string) => {
+  const patternParts = pattern.split("/");
+  const topicParts = topic.split("/");
+
+  for (let index = 0; index < patternParts.length; index += 1) {
+    const patternPart = patternParts[index];
+    const topicPart = topicParts[index];
+
+    if (patternPart === "#") {
+      return true;
+    }
+
+    if (topicPart === undefined) {
+      return false;
+    }
+
+    if (patternPart !== "+" && patternPart !== topicPart) {
+      return false;
+    }
+  }
+
+  return patternParts.length === topicParts.length;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const topic = searchParams.get("topic") || "team/+/+/+";
+  const topic = searchParams.get("topic") || "team/+/#";
 
   mqttService.subscribe(topic);
 
@@ -16,7 +40,7 @@ export async function GET(request: Request) {
       };
 
       const off = mqttService.onMessage((payload) => {
-        if (payload.topic.includes(topic.replace("+", "")) || topic.includes("+")) {
+        if (mqttTopicMatches(topic, payload.topic)) {
           send(payload);
         }
       });

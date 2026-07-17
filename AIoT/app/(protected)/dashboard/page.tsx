@@ -14,8 +14,10 @@ const topicOptions = ["temperature", "humidity", "light"] as const;
 export default function DashboardPage() {
   const teamId = useAuthStore((state) => state.teamId);
   const [preferredDeviceId, setPreferredDeviceId] = useState<string>("");
+  const [buttonDeviceFilter, setButtonDeviceFilter] = useState<string[]>([]);
   const [mqttConnected, setMqttConnected] = useState<boolean | null>(null);
-  const { series, latest, activeDevices, deviceIds, selectedDeviceId } = useRealtimeTelemetry(teamId, preferredDeviceId || undefined);
+  const { series, latest, activeDevices, deviceIds, selectedDeviceId, selectedDeviceButtonState, buttonStateByDevice, onlineByDevice } =
+    useRealtimeTelemetry(teamId, preferredDeviceId || undefined);
   const [widgets, setWidgets] = useState<DashboardWidget[]>([
     { id: createClientId("widget"), title: "Sensor Overview", type: "line", topic: "temperature" },
     { id: createClientId("widget"), title: "Thermal Trend", type: "area", topic: "humidity" }
@@ -55,6 +57,10 @@ export default function DashboardPage() {
     }
   }, [deviceIds, preferredDeviceId]);
 
+  useEffect(() => {
+    setButtonDeviceFilter((prev) => prev.filter((deviceId) => deviceIds.includes(deviceId)));
+  }, [deviceIds]);
+
   const mqttBadgeClass = useMemo(() => {
     if (mqttConnected) {
       return "bg-emerald-500/20 text-emerald-100";
@@ -64,6 +70,13 @@ export default function DashboardPage() {
   }, [mqttConnected]);
 
   const mqttBadgeLabel = mqttConnected ? "MQTT Connected" : "MQTT Disconnected";
+  const filteredButtonDeviceIds = useMemo(() => {
+    if (buttonDeviceFilter.length === 0) {
+      return deviceIds;
+    }
+
+    return deviceIds.filter((deviceId) => buttonDeviceFilter.includes(deviceId));
+  }, [buttonDeviceFilter, deviceIds]);
 
   const addWidget = () => {
     setWidgets((prev) => [
@@ -79,10 +92,78 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-4 pb-6">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-4">
         <StatCard title="Active Devices" value={`${activeDevices}`} hint="Heartbeat timeout: 60s" />
         <StatCard title="Temperature" value={`${latest?.temperature ?? 0} °C`} hint={`Live from ${selectedDeviceId ?? "-"}`} />
         <StatCard title="Humidity" value={`${latest?.humidity ?? 0} %RH`} hint={`Live from ${selectedDeviceId ?? "-"}`} />
+        <StatCard title="Push Button" value={selectedDeviceButtonState} hint={`Topic: team/${teamId}/${selectedDeviceId ?? "-"}/button/1/state`} />
+      </section>
+
+      <section className="glass rounded-2xl p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <h3 className="font-[var(--font-sora)] text-xl font-semibold">Push Button Status By Device</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              className="rounded-lg border border-white/25 bg-white/5 px-3 py-1 text-xs"
+              onClick={() => setButtonDeviceFilter([])}
+            >
+              Show All
+            </button>
+            <button
+              className="rounded-lg border border-white/25 bg-white/5 px-3 py-1 text-xs"
+              onClick={() => setButtonDeviceFilter(deviceIds)}
+            >
+              Select All
+            </button>
+            <button
+              className="rounded-lg border border-white/25 bg-white/5 px-3 py-1 text-xs"
+              onClick={() => setButtonDeviceFilter([])}
+            >
+              Clear Filter
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {deviceIds.length === 0 ? (
+            <span className="text-xs text-slate-300/80">No device</span>
+          ) : (
+            deviceIds.map((deviceId) => {
+              const checked = buttonDeviceFilter.includes(deviceId);
+              return (
+                <label key={deviceId} className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/5 px-3 py-1 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        setButtonDeviceFilter((prev) => Array.from(new Set([...prev, deviceId])));
+                        return;
+                      }
+
+                      setButtonDeviceFilter((prev) => prev.filter((value) => value !== deviceId));
+                    }}
+                  />
+                  <span>{deviceId}</span>
+                </label>
+              );
+            })
+          )}
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {filteredButtonDeviceIds.map((deviceId) => (
+            <StatCard
+              key={deviceId}
+              title={`Button - ${deviceId}`}
+              value={buttonStateByDevice[deviceId] ?? "UNKNOWN"}
+              hint={onlineByDevice[deviceId] ? "online" : "offline"}
+            />
+          ))}
+          {filteredButtonDeviceIds.length === 0 && (
+            <p className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs text-slate-300/80">ไม่มีอุปกรณ์ตาม filter ที่เลือก</p>
+          )}
+        </div>
       </section>
 
       <section className="glass rounded-2xl p-4">

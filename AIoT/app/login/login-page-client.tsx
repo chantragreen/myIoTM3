@@ -8,19 +8,52 @@ export default function LoginPageClient() {
   const [teamId, setTeamId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const login = useAuthStore((state) => state.login);
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!teamId.trim() || !password.trim()) {
+    const normalizedTeamId = teamId.trim().toUpperCase();
+    if (!normalizedTeamId || !password.trim()) {
       setError("กรุณากรอก Team ID และรหัสผ่าน");
       return;
     }
 
-    login(teamId.trim().toUpperCase());
-    router.push("/dashboard");
+    if (normalizedTeamId === "TEAM-DEMO") {
+      setError("TEAM-DEMO ถูกปิดใช้งานใน production กรุณาใช้ Team ID จริง");
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/settings/team-policy", { cache: "no-store" });
+      if (!response.ok) {
+        setError("ไม่สามารถตรวจสอบ policy ทีมได้ กรุณาลองใหม่");
+        return;
+      }
+
+      const policy = (await response.json()) as {
+        lockEnabled?: boolean;
+        allowedTeamIds?: string[];
+      };
+
+      const allowedTeamIds = Array.isArray(policy.allowedTeamIds) ? policy.allowedTeamIds : [];
+      if (policy.lockEnabled && !allowedTeamIds.includes(normalizedTeamId)) {
+        setError("Team ID นี้ยังไม่อยู่ใน allowed list ของ production");
+        return;
+      }
+
+      login(normalizedTeamId);
+      router.push("/dashboard");
+    } catch {
+      setError("เกิดข้อผิดพลาดในการตรวจสอบ Team ID");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -56,9 +89,10 @@ export default function LoginPageClient() {
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full rounded-xl bg-gradient-to-r from-teal to-cyan px-4 py-2 font-semibold text-ink transition hover:brightness-110"
           >
-            เข้าสู่ระบบ
+            {isSubmitting ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
           </button>
         </form>
       </section>

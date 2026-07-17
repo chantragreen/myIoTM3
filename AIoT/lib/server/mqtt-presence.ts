@@ -125,7 +125,7 @@ export const ensurePresenceTracking = () => {
 
   trackerStarted = true;
   mqttService.connect();
-  mqttService.subscribe("team/+/+/+");
+  mqttService.subscribe("team/+/#");
   mqttService.onMessage((payload) => {
     onMessage(payload.topic, payload.message);
   });
