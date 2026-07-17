@@ -40,9 +40,9 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       isAuthenticated: false,
-      teamId: "TEAM-DEMO",
+      teamId: "",
       login: (teamId) => set({ isAuthenticated: true, teamId }),
-      logout: () => set({ isAuthenticated: false, teamId: "TEAM-DEMO" })
+      logout: () => set({ isAuthenticated: false, teamId: "" })
     }),
     {
       name: "aiot-auth-storage",

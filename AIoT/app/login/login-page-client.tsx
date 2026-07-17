@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPageClient() {
-  const [teamId, setTeamId] = useState("TEAM-DEMO");
+  const [teamId, setTeamId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();

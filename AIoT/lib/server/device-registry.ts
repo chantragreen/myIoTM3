@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { CreateDeviceInput, Device } from "@/types/device";
+import { getTeamPresence } from "@/lib/server/mqtt-presence";
 
 const registry = new Map<string, Device[]>();
 
@@ -17,34 +18,65 @@ const buildTopics = (teamId: string, deviceId: string, type: Device["type"]) => 
   return [`${base}/heartbeat`, `${base}/status`];
 };
 
-const seed = () => {
-  if (registry.size > 0) {
-    return;
+const extractDeviceId = (teamId: string, topics: string[]) => {
+  for (const topic of topics) {
+    const parts = topic.split("/");
+    if (parts.length >= 3 && parts[0] === "team" && parts[1] === teamId) {
+      return parts[2];
+    }
   }
 
-  const now = new Date().toISOString();
-  const teamId = "TEAM-DEMO";
-  const edgeId = randomUUID();
-
-  registry.set(teamId, [
-    {
-      id: edgeId,
-      teamId,
-      name: "Pico W Edge #01",
-      type: "edge-station",
-      macAddress: "28:CD:C1:10:AF:EE",
-      topics: buildTopics(teamId, edgeId, "edge-station"),
-      status: "online",
-      lastSeen: now,
-      createdAt: now
-    }
-  ]);
+  return null;
 };
 
-seed();
-
 export const listDevices = (teamId: string) => {
-  return registry.get(teamId) ?? [];
+  const savedDevices = registry.get(teamId) ?? [];
+  const presenceDevices = getTeamPresence(teamId, 60_000);
+  const presenceByDeviceId = new Map(presenceDevices.map((device) => [device.deviceId, device]));
+
+  const mergedSaved = savedDevices.map((device) => {
+    const sourceDeviceId = extractDeviceId(teamId, device.topics);
+    const presence = sourceDeviceId ? presenceByDeviceId.get(sourceDeviceId) : undefined;
+
+    if (!presence) {
+      return {
+        ...device,
+        status: "offline" as const
+      };
+    }
+
+    return {
+      ...device,
+      status: presence.status,
+      lastSeen: presence.lastSeen,
+      macAddress: presence.macAddress || device.macAddress,
+      topics: presence.topics.length > 0 ? presence.topics : device.topics
+    };
+  });
+
+  const mergedSavedDeviceIds = new Set(
+    mergedSaved
+      .map((device) => extractDeviceId(teamId, device.topics))
+      .filter((value): value is string => Boolean(value))
+  );
+
+  const discovered = presenceDevices
+    .filter((device) => !mergedSavedDeviceIds.has(device.deviceId))
+    .map(
+      (device): Device => ({
+        id: `mqtt:${teamId}:${device.deviceId}`,
+        teamId,
+        name: `Pico ${device.deviceId}`,
+        type: "edge-station",
+        macAddress: device.macAddress || "UNKNOWN",
+        topics: device.topics,
+        status: device.status,
+        lastSeen: device.lastSeen,
+        createdAt: device.lastSeen
+      })
+    );
+
+  return [...discovered, ...mergedSaved];
 };
 
 export const createDevice = (teamId: string, input: CreateDeviceInput) => {

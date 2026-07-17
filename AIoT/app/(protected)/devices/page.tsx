@@ -14,6 +14,12 @@ export default function DevicesPage() {
 
   useEffect(() => {
     loadDevices(teamId);
+
+    const timer = setInterval(() => {
+      loadDevices(teamId);
+    }, 10_000);
+
+    return () => clearInterval(timer);
   }, [loadDevices, teamId]);
 
   const createDevice = async (payload: { name: string; type: DeviceType; macAddress: string }) => {

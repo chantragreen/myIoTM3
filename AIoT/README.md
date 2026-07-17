@@ -79,7 +79,7 @@ AIoT/
 
 ### API Endpoints
 
-- `GET /api/devices?teamId=TEAM-DEMO` ดึงรายการอุปกรณ์
+- `GET /api/devices?teamId=<TEAM_ID>` ดึงรายการอุปกรณ์
 - `POST /api/devices` เพิ่มอุปกรณ์ (รับ `x-team-id` header)
 - `DELETE /api/devices/:id` ลบอุปกรณ์
 - `GET /api/mqtt/status` ตรวจสถานะ MQTT connection
@@ -153,7 +153,7 @@ Subscribe topic:
 ```bash
 curl -X POST http://localhost:3000/api/mqtt/subscribe \
   -H "Content-Type: application/json" \
-  -d '{"topic":"team/TEAM-DEMO/+/temperature"}'
+  -d '{"topic":"team/<TEAM_ID>/+/temperature"}'
 ```
 
 Publish command:
@@ -161,7 +161,7 @@ Publish command:
 ```bash
 curl -X POST http://localhost:3000/api/mqtt/publish \
   -H "Content-Type: application/json" \
-  -d '{"topic":"team/TEAM-DEMO/device-001/relay/1/cmd","message":"ON","qos":1}'
+  -d '{"topic":"team/<TEAM_ID>/device-001/relay/1/cmd","message":"ON","qos":1}'
 ```
 
 ## 7) User Manual & Maintenance Guide

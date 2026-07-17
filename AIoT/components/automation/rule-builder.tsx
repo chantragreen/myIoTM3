@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { createClientId } from "@/lib/client-id";
 
 interface Rule {
   id: string;
@@ -17,7 +18,7 @@ export function RuleBuilder() {
     event.preventDefault();
     setRules((prev) => [
       {
-        id: crypto.randomUUID(),
+        id: createClientId("rule"),
         condition,
         action
       },
